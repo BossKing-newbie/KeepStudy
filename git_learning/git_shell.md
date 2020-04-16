@@ -152,7 +152,7 @@ $ git log --pretty=oneline
   git push -u origin master
   ```
 
-- ![](F:\KeepStudy\git_learning\image\git_github.png)
+- ![](.//image//git_github.png)
 
 - 把本地库的内容推送到远程，用`git push`命令，实际上是把当前分支`master`推送到远程。
 
@@ -160,7 +160,7 @@ $ git log --pretty=oneline
 
 - 推送成功后，可以立刻在GitHub页面中看到远程库的内容已经和本地一模一样：
 
-- ![](F:\KeepStudy\git_learning\image\git_origin_github.png)
+- ![](.//image//git_origin_github.png)
 
 - 从现在起，只要本地作了提交，就可以通过命令：
 
@@ -173,4 +173,3 @@ $ git log --pretty=oneline
 - 此后，每次本地提交后，只要有必要，就可以使用命令`git push origin master`推送最新修改；
 
 - 分布式版本系统的最大好处之一是在本地工作完全不需要考虑远程库的存在，也就是有没有联网都可以正常工作，而SVN在没有联网的时候是拒绝干活的！当有网络的时候，再把本地提交推送一下就完成了同步，真是太方便了！
-
