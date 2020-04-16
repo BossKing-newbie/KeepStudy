@@ -173,3 +173,117 @@ $ git log --pretty=oneline
 - 此后，每次本地提交后，只要有必要，就可以使用命令`git push origin master`推送最新修改；
 
 - 分布式版本系统的最大好处之一是在本地工作完全不需要考虑远程库的存在，也就是有没有联网都可以正常工作，而SVN在没有联网的时候是拒绝干活的！当有网络的时候，再把本地提交推送一下就完成了同步，真是太方便了！
+
+## 8.从远程库克隆
+
+#### 小结
+
+- 要克隆一个仓库，首先必须知道仓库的地址，然后使用`git clone`命令克隆。
+- Git支持多种协议，包括`https`，但`ssh`协议速度最快。
+
+## 9. 创建与合并分支
+
+- 在版本回退里，每次提交，Git都把它们串成一条时间线，这条时间线就是一个分支。截止到目前，只有一条时间线，在Git里，这个分支叫主分支，即`master`分支。`HEAD`严格来说不是指向提交，而是指向`master`，`master`才是指向提交的，所以，`HEAD`指向的就是当前分支。
+
+- 一开始的时候，`master`分支是一条线，Git用`master`指向最新的提交，再用`HEAD`指向`master`，就能确定当前分支，以及当前分支的提交点：
+
+- ![Image Text](https://www.liaoxuefeng.com/files/attachments/919022325462368/0)
+
+- 每次提交，`master`分支都会向前移动一步，这样，随着你不断提交，`master`分支的线也越来越长。
+
+- 当我们创建新的分支，例如`dev`时，Git新建了一个指针叫`dev`，指向`master`相同的提交，再把`HEAD`指向`dev`，就表示当前分支在`dev`上：
+
+- ![](https://www.liaoxuefeng.com/files/attachments/919022363210080/l)
+
+- 你看，Git创建一个分支很快，因为除了增加一个`dev`指针，改改`HEAD`的指向，工作区的文件都没有任何变化！
+
+- 不过，从现在开始，对工作区的修改和提交就是针对`dev`分支了，比如新提交一次后，`dev`指针往前移动一步，而`master`指针不变：
+
+- ![](https://www.liaoxuefeng.com/files/attachments/919022387118368/l)
+
+- 假如我们在`dev`上的工作完成了，就可以把`dev`合并到`master`上。Git怎么合并呢？最简单的方法，就是直接把`master`指向`dev`的当前提交，就完成了合并：
+
+- 所以Git合并分支也很快！就改改指针，工作区内容也不变！
+
+- 合并完分支后，甚至可以删除`dev`分支。删除`dev`分支就是把`dev`指针给删掉，删掉后，我们就剩下了一条`master`分支：
+
+- 首先，我们创建dev分支，然后切换到dev分支：
+
+- ```git
+  git checkout -b dev
+  ```
+
+- `git checkout`命令加上`-b`参数表示创建并切换，相当于以下两条命令：
+
+- ```git
+  git branch dev
+  git checkout dev
+  ```
+
+- 使用git branch命令查看当前分支：
+
+- ```git
+  git branch
+  ```
+
+- `git branch`命令会列出所有分支，当前分支前面会标一个`*`号。然后，我们就可以在`dev`分支上正常提交。
+
+- 如果dev分支的工作完成，我们就可以切换回master分支：
+
+- ```git
+  git checkout master
+  ```
+
+- 切换回master分支后，会版本回退到master提交点。
+
+- 把dev分支合并到master分支上，可以使用以下命令：
+
+- ```git
+  git merge dev
+  ```
+
+- `git merge`命令用于合并指定分支到当前分支。合并后，再查看`readme.txt`的内容，就可以看到，和`dev`分支的最新提交是完全一样的。
+
+- 注意到上面的`Fast-forward`信息，Git告诉我们，这次合并是“快进模式”，也就是直接把`master`指向`dev`的当前提交，所以合并速度非常快。
+
+- 合并完成后，就可以放心地删除`dev`分支了
+
+- ```git
+  git branch -d dev
+  ```
+
+- 因为创建、合并和删除分支非常快，所以Git鼓励你使用分支完成某个任务，合并后再删掉分支，这和直接在`master`分支上工作效果是一样的，但过程更安全。
+
+- 实际上，切换分支这个动作，用`switch`更科学。因此，最新版本的Git提供了新的`git switch`命令来切换分支：
+
+- 创建并切换到新的`dev`分支，可以使用：
+
+- ```git
+  git switch -c dev
+  ```
+
+- 直接切换到已有的`master`分支，可以使用：
+
+- ```git
+  git switch master
+  ```
+
+- 使用新的`git switch`命令，比`git checkout`要更容易理解。
+
+#### 小结
+
+- Git鼓励大量使用分支：
+- 查看分支：`git branch`
+- 创建分支：`git branch `
+- 切换分支：`git checkout `或者`git switch `
+- 创建+切换分支：`git checkout -b `或者`git switch -c `
+- 合并某分支到当前分支：`git merge `
+- 删除分支：`git branch -d `
+
+## 10.解决冲突
+
+#### 小结
+
+- 当Git无法自动合并分支时，就必须首先解决冲突。解决冲突后，再提交，合并完成。
+- 解决冲突就是把Git合并失败的文件手动编辑为我们希望的内容，再提交。
+- 用`git log --graph`命令可以看到分支合并图。
