@@ -1,3 +1,5 @@
+[TOC]
+
 ## 1.创建版本库
 
 ```git
@@ -575,3 +577,49 @@ $ git log --pretty=oneline
 - 因为廖雪峰老师在这节所讲的变基操作，没有那么浅显易懂。所以我借鉴了其他网站的思路：
 - [git rebase](http://gitbook.liuhui998.com/4_2.html)
 
+## 16. 创建标签
+
+#### 小结
+
+- 命令`git tag `用于新建一个标签，默认为`HEAD`，也可以指定一个commit id；
+- 命令`git tag -a  -m "blablabla..."`可以指定标签信息；
+- 命令`git tag`可以查看所有标签。
+
+## 17. 操作标签
+
+- 删除标签：
+
+- ```git
+  git tag -d <tagname>
+  ```
+
+- 如果要推送某个标签到远程，使用命令`git push origin `：
+
+- ```git
+  git push origin <tagname>
+  ```
+
+- 或者一次性推送全部尚未推送到远程的本地标签：
+
+- ```git
+  $ git push origin --tags
+  ```
+
+- 如果标签已经推送到远程，要删除远程标签就麻烦一点，先从本地删除：
+
+- ```git
+  git tag -d <tagname>
+  ```
+
+- 然后从远程删除：
+
+- ```git
+  $ git push origin :refs/tags/<tagname>
+  ```
+
+#### 小结
+
+- 命令`git push origin <tagname> `可以推送一个本地标签；
+- 命令`git push origin --tags`可以推送全部未推送过的本地标签；
+- 命令`git tag -d  <tagname>`可以删除一个本地标签；
+- 命令`git push origin :refs/tags/<tagname>`可以删除一个远程标签。

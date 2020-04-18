@@ -4,5 +4,6 @@
 - 排在学习首位的是git,命令能够记住，但是有时候总是会忘记。觉得自己没有系统地学习，也不知道每个命令背后的原理和深层的意义。
 - 学习就完事了！
 - 感谢廖雪峰老师的Git学习网站：[Git教程](https://www.liaoxuefeng.com/wiki/896043488029600)
+- Git学习阶段已完结!
 - <img src="https://pic4.zhimg.com/80/v2-c8e99bb6da61bbfa0b4e7a475f3c8f2f_720w.jpg" style="zoom:50%;" />
 
