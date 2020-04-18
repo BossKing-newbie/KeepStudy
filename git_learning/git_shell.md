@@ -317,3 +317,261 @@ $ git log --pretty=oneline
 
 - Git分支十分强大，在团队开发中应该充分应用。
 - 合并分支时，加上`--no-ff`参数就可以用普通模式合并，合并后的历史有分支，能看出来曾经做过合并，而`fast forward`合并就看不出来曾经做过合并。
+
+## 12.Bug分支
+
+#### 前言
+
+- 软件开发中，bug就像家常便饭一样。有了bug就需要修复，在Git中，由于分支是如此的强大，所以，每个bug都可以通过一个新的临时分支来修复，修复后，合并分支，然后将临时分支删除。
+- 假设场景：当你接到一个修复一个代号101的bug的任务时，很自然地，你想创建一个分支`issue-101`来修复它，但是，等等，当前正在`dev`上进行的工作还没有提交：并不是你不想提交，而是工作只进行到一半，还没法提交，预计完成还需1天时间。但是，必须在两个小时内修复该bug，怎么办？
+- Git提供了一个`stash`功能，可以把当前工作现场“储藏”起来，等以后恢复现场后继续工作：
+
+#### 使用git stash
+
+- ```git
+  git stash
+  ```
+
+- ![](.//image//git_stash.png)
+
+- ```git
+  $ git switch master
+  Switched to branch 'master'
+  $ git switch -c issue-101
+  Switched to a new branch 'issue-101'
+  
+  $ git add readme1.txt
+  
+  $ git commit -m "fix issue-101"
+  [issue-101 75d8a0c] fix issue-101
+   1 file changed, 2 insertions(+), 1 deletion(-)
+  
+  $ git switch master
+  Switched to branch 'master'
+  
+  $ git merge --no-ff -m "merged bug fix 101" issue-101
+  Merge made by the 'recursive' strategy.
+   readme1.txt | 3 ++-
+   1 file changed, 2 insertions(+), 1 deletion(-)
+  ```
+
+- ![](.//image//git_stash_one.png)
+
+- 然后回到dev继续干活！
+
+- ```git
+  $ git switch dev
+  Switched to branch 'dev'
+  ```
+
+- 用`git stash list`命令看看：
+
+- ![](.//image//git_stash_list.png)
+
+- 工作现场还在，Git把stash内容存在某个地方了，但是需要恢复一下，有两个办法：
+
+- 一是用`git stash apply`恢复，但是恢复后，stash内容并不删除，你需要用`git stash drop`来删除；
+
+- 另一种方式是用`git stash pop`，恢复的同时把stash内容也删了：
+
+- ![](.//image//git_stash_pop.png)
+
+- 再用`git stash list`查看，就看不到任何stash内容了：
+
+- ![](.//image//git_stash_list_none.png)
+
+- 你可以多次stash，恢复的时候，先用`git stash list`查看，然后恢复指定的stash，用命令：
+
+- ```git
+  $ git stash apply stash@{0}
+  ```
+
+#### 新的疑问
+
+- 在master分支上修复了bug后，我们要想一想，dev分支是早期从master分支分出来的，所以，这个bug其实在当前dev分支上也存在。
+
+- 同样的bug，要在dev上修复，我们只需要把`75d8a0c fix issue101`这个提交所做的修改“复制”到dev分支。注意：我们只想复制`75d8a0c fix issue101`这个提交所做的修改，并不是把整个master分支merge过来。
+
+- ![](.//image//git_stash_problem.png)
+
+- 为了方便操作，Git专门提供了一个`cherry-pick`命令，让我们能复制一个特定的提交到当前分支：
+
+- ```git
+  $ git cherry-pick 75d8a0c 
+  ```
+
+- ![](.//image//git_cherry_pick.png)
+
+- 在看看bug有无修复：
+
+- ![](.//image//git_cherry_txt.png)
+
+- 至此，master上修复bug所做的修改也同时复制到了dev分支
+
+#### 小结
+
+- 修复bug时，我们会通过创建新的bug分支进行修复，然后合并，最后删除；
+- 当手头工作没有完成时，先把工作现场`git stash`一下，然后去修复bug，修复后，再`git stash pop`，回到工作现场；
+- 在master分支上修复的bug，想要合并到当前dev分支，可以用`git cherry-pick <commit id>`命令，把bug提交的修改“复制”到当前分支，避免重复劳动。
+
+## 13. Feature分支
+
+#### 前言
+
+- 软件开发中，总有无穷无尽的新的功能要不断添加进来。
+
+- 添加一个新功能时，你肯定不希望因为一些实验性质的代码，把主分支搞乱了，所以，每添加一个新功能，最好新建一个feature分支，在上面开发，完成后，合并，最后，删除该feature分支。
+
+- 开发完成后，切换回dev分支，准备合并
+
+- 但是此时，功能分支必须取消！
+
+- ```git
+  git branch -d <分支名>
+  ```
+
+- 销毁失败。Git友情提醒，`feature-vulcan`分支还没有被合并，如果删除，将丢失掉修改，如果要强行删除，需要使用大写的`-D`参数。
+
+#### 小结
+
+- 开发一个新feature，最好新建一个分支；
+- 如果要丢弃一个没有被合并过的分支，可以通过`git branch -D `强行删除。
+
+## 14. 多人协作
+
+#### 前言
+
+- 当你从远程仓库克隆时，实际上Git自动把本地的`master`分支和远程的`master`分支对应起来了，并且，远程仓库的默认名称是`origin`。
+- 要查看远程库的信息，用`git remote`
+- ![](.//image//git_remote.png)
+- 或者，用`git remote -v`显示更详细的信息：
+- ![](.//image//git_remote-v.png)
+- 上面显示了可以抓取和推送的`origin`的地址。
+- fetch:抓取，push:推送。
+
+#### 推送分支
+
+- 推送分支，就是把该分支上的所有本地提交推送到远程库。推送时，要指定本地分支，这样，Git就会把该分支推送到远程库对应的远程分支上：
+
+- ```git
+  $ git push origin master
+  ```
+
+- 如果要推送其他分支，比如`dev`，就改成：
+
+- ```git
+  $ git push origin dev
+  ```
+
+- 但是，并不是一定要把本地分支往远程推送，那么，哪些分支需要推送，哪些不需要呢？
+
+- `master`分支是主分支，`dev`分支是开发分支
+
+- bug分支只用于在本地修复bug，就没必要推到远程了。
+
+- feature分支是否推到远程，取决于团队开发。
+
+#### 抓取分支
+
+- 多人协作时，大家都会往`master`和`dev`分支上推送各自的修改。
+
+- 当你的小伙伴从远程库clone时，默认情况下，你的小伙伴只能看到本地的`master`分支。
+
+- 如果要在`dev`分支上开发，就必须创建远程`origin`的`dev`分支到本地，于是用以下命令创建本地`dev`分支：
+
+- ```git
+  $ git checkout -b dev origin/dev
+  ```
+
+- 假设团队成员比你更早推送了新的提交，而此时你也对同样的文件进行了修改。
+
+- 此时会导致推送失败，因为团队成员最新的提交与你试图推送的提交有冲突，解决办法：
+
+- ```git
+  git pull
+  ```
+
+- 先用`git pull`把最新的提交从`origin/dev`抓下来，然后，在本地合并，解决冲突，再推送。
+
+- 如果`git pull`失败了，往往原因是没有指定本地`dev`分支与远程`origin/dev`分支的链接，根据提示，设置`dev`和`origin/dev`的链接：
+
+- ```git
+  $ git branch --set-upstream-to=origin/dev dev
+  ```
+
+- 然后再`git pull`
+
+- 如果遇到合并冲突，需要手动解决，解决方法和分支管理中的解决冲突一致。解决后，再提交，再push。
+
+因此，多人协作的工作模式通常是：
+
+1. 首先，试图用`git push origin <branch-name>`推送自己的修改；
+2. 如果推送失败，因为远程分支比你本地分支更新，先用`git pull`试图合并。
+3. 如果合并有冲突，则解决冲突，并在本地提交。
+4. 没有冲突或者解决冲突后，就可以使用`git push origin <branch-name>`推送就能成功！
+
+- 如果`git pull`提示`no tracking information`，则说明本地分支和远程分支的链接关系没有创建，用命令`git branch --set-upstream-to  origin/`。
+
+#### 小结
+
+- 查看远程库信息，使用`git remote -v`；
+- 本地新建的分支如果不推送到远程，对其他人就是不可见的；
+- 从本地推送分支，使用`git push origin branch-name`，如果推送失败，先用`git pull`抓取远程的新提交；
+- 在本地创建和远程分支对应的分支，使用`git checkout -b branch-name origin/branch-name`，本地和远程分支的名称最好一致；
+- 建立本地分支和远程分支的关联，使用`git branch --set-upstream branch-name origin/branch-name`；
+- 从远程抓取分支，使用`git pull`，如果有冲突，要先处理冲突。
+
+## 15. Rebase(变基)操作
+
+#### 理解思路
+
+- 假设当前，你基于远程分支“origin/dev",创建一个叫”mywork“的分支。
+
+- ```git
+  $ git checkout -b mywork origin
+  ```
+
+- ![](http://gitbook.liuhui998.com/assets/images/figure/rebase0.png)
+
+- 现在在此分支上，我们生成两次提交。
+
+- 但是与此同时，团队成员也在“origin"分支上做了一些修改并且做了一些提交，这意味着”origin"和“mywork”这两个分支各自前进了，他们之间分叉了。
+
+- ![](http://gitbook.liuhui998.com/assets/images/figure/rebase1.png)
+
+- 在这里，你可以用`git pull`命令把"origin"分支上的修改拉下来并且和你的修改合并； 结果看起来就像一个新的"合并的提交"。
+
+- ![](http://gitbook.liuhui998.com/assets/images/figure/rebase2.png)
+
+- 但是，如果你想让mywork分支历史看起来像没有经过任何合并一样，可以用`git rebase`：
+
+- ```git
+  $ git checkout mywork
+  $ git rebase origin
+  ```
+
+- 这些命令会把你的"mywork"分支里的每个提交(commit)取消掉，并且把它们临时 保存为补丁(patch)(这些补丁放到".git/rebase"目录中),然后把"mywork"分支更新 到最新的"origin"分支，最后把保存的这些补丁应用到"mywork"分支上。
+
+- ![](http://gitbook.liuhui998.com/assets/images/figure/rebase3.png)
+
+- 当“mywork"分支更新后，此前所进行的提交如C5、C6就会被丢弃。
+
+- ![](http://gitbook.liuhui998.com/assets/images/figure/rebase4.png)
+
+- 现在我们可以看一下用`git pull`合并(merge)和用`git rebase`所产生的历史的区别：
+
+- ![](http://gitbook.liuhui998.com/assets/images/figure/rebase5.png)
+
+- 在rebase的过程中，也许会出现冲突(conflict). 在这种情况，Git会停止rebase并会让你去解决 冲突；在解决完冲突后，用"git-add"命令去更新这些内容的索引(index), 然后，你无需执行 git-commit,只要执行:
+
+- ```git
+  $ git rebase --continue
+  ```
+
+#### 小结
+
+- rebase操作可以把本地未push的分叉提交历史整理成直线；
+- rebase的目的是使得我们在查看历史提交的变化时更容易，因为分叉的提交需要三方对比。
+- 因为廖雪峰老师在这节所讲的变基操作，没有那么浅显易懂。所以我借鉴了其他网站的思路：
+- [git rebase](http://gitbook.liuhui998.com/4_2.html)
+
