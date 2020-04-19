@@ -42,3 +42,30 @@ pom是项目对象模型(Project Object Module)，该文件是可以被子工程
 ```
 
 <img src=".//image//maven_dependency.png" style="zoom:67%;" />
+
+## 5. maven-webapp项目创建过慢
+
+- 添加archetypeCatalog-internal
+
+## 6. 父工程管理依赖
+
+- 父工程添加的依赖，所有的子模块会无条件的继承所造成的依赖冗余。
+
+- 父工程需要加强管理依赖，标签：<dependencyManagement>
+
+- 子工程需要的jar包，只需要声明依赖：
+
+- ```xml
+  <dependency>
+  			<groupId>junit</groupId>
+  			<artifactId>junit</artifactId>
+  </dependency>
+  ```
+
+- 不需要声明版本号
+
+## 7. 父工程管理依赖的版本号
+
+- 在pom中<properties>元素下自定义的Maven属性
+- 
+
