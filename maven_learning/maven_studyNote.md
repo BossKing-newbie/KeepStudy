@@ -67,5 +67,20 @@ pom是项目对象模型(Project Object Module)，该文件是可以被子工程
 ## 7. 父工程管理依赖的版本号
 
 - 在pom中<properties>元素下自定义的Maven属性
+
+- 自定义标签名称
+
+- 通常管理依赖版本号的标签名称：项目名称+字段version
+
+- ```xml
+  <!--定义版本号-->
+  	<properties>
+  		<junit-version>4.13</junit-version>
+  		<mysql-version>8.0.19</mysql-version>
+  	</properties>
+  ```
+
+- ![](.//image//maven_properties.png)
+
 - 
 
