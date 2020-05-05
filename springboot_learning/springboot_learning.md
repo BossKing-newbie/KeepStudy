@@ -112,3 +112,313 @@ java -jar 01_SpringBoot_HelloWorld-1.0-SNAPSHOT.jar
 
 ![](.//image//success2.png)
 
+## 6、HelloWorld场景解析
+
+### 1、pom文件
+
+![](.//image//parent1.png)
+
+![](.//image//parent2.png)
+
+### 2、导入的依赖
+
+![](.//image//parent3.png)
+
+### 3、启动场景
+
+Spring Boot将所有的功能场景抽取出来，做成一个个的starters（启动器），只需要在项目中引入这些starter相关场景的所有依赖就会被导入进来。
+
+## 7、配置文件
+
+### 1、简介
+
+SpringBoot使用全局的配置文件,配置文件名是固定的：
+
+application.properties
+
+application.yml
+
+配置文件的作用: 修改springboot自动配置的默认值：SpringBoot在底层给我们自动配置好；
+
+yaml：以数据为中心
+
+```yaml
+server:
+  port: 8090
+```
+
+### 2、基本语法
+
+k:(空格)v: 表示键值对
+
+以空格的缩进来控制层级关系：只要左对齐的一列数据，都是同一层级:
+
+```yaml
+server:
+	port: 8080
+	path: /hello
+```
+
+属性和值都是大小写敏感
+
+### 3、值的语法
+
+#### 字面量：普通的值(数字、布尔、字符串)
+
+​	k: v: 字面量直接写；
+
+​			字符串默认不用加单引号或者双引号；
+
+#### 对象、Map（属性和值）（键值对）：
+
+​	k：v: 	
+
+​			对象还是k:v的方式
+
+```yaml
+server:
+	port: 8080
+	path: /hello
+```
+
+行内写法：
+
+```yaml
+server: {port: 8080, path: /hello}
+```
+
+#### 数组（List、Set）
+
+用-值来表示数组中的一个元素:
+
+```yaml
+pets:
+ - cat 
+ - dog
+ - pig
+```
+
+### 4、配置文件进行Bean注入
+
+#### 1、创建一个实体类,添加Getter和Setter方法以及toString方法
+
+```java
+public class Person {
+    private String name;
+    private String age;
+    private String telephone;
+    private String email;
+    private Cat cat;
+}
+```
+
+#### 2、添加注解以实现配置文件注入
+
+```java
+@Component
+@ConfigurationProperties(prefix = "person")
+public class Person {
+    private String name;
+    private String age;
+    private String telephone;
+    private String email;
+    private Cat cat;
+}
+```
+
+#### 3、编写配置文件application.yml
+
+```yaml
+server:
+  port: 8090
+person:
+  name: bossking
+  age: 18
+  telephone: 13078163530
+  email: 724574109@qq.com
+  cat:
+    name: cc
+    age: 10
+```
+
+#### 4、启动SpringBoot
+
+#### 5、编写测试类，将Person类对象自动注入容器
+
+```java
+public class Springboot01QuickstartApplicationTests {
+
+    @Autowired
+    Person person;
+
+    @Test
+    public void contextLoads() {
+        System.out.println(person);
+    }
+
+}
+```
+
+### 5、@Value和@ConfigurationProperties为属性注入值对比
+
+如果application.properties中含有相同对象的不同值，那么yml文件的属性值会被覆盖
+
+|                  | @ConfigurationProperties | @Value     |
+| ---------------- | ------------------------ | ---------- |
+| 功能             | 批量注入配置文件中的属性 | 一个个指定 |
+| 松散绑定（驼峰） | 支持                     | 不支持     |
+| SpEL             | 不支持                   | 支持       |
+| JSR303校验       | 支持                     | 不支持     |
+| 复杂类型封装     | 支持                     | 不支持     |
+
+如果说，只是使用配置文件中的某个值，则使用@Value进行值的注入。
+
+如果说，我们编写一个实体类来和配置文件进行映射，则使用@ConfigurationProperties
+
+@ConfigurationProperties是默认从全局配置文件中读取值。
+
+### 6、@PropertySource
+
+```java
+@PropertySource(value={"classpath:文件名"})
+```
+
+@PropertySource加载类路径下的配置文件，value可以传递数组，即加载多个配置文件。
+
+### 7、@ImportResource
+
+导入Spring的配置文件，让配置文件中的内容生效；
+
+在主配置类中，将Spring的配置文件加载进来：
+
+```java
+ @SpringBootApplication
+@ImportResource(locations = {"classpath:SpringConfiguration.xml"})
+public class Springboot01QuickstartApplication {
+
+    public static void main(String[] args) {
+        Cat cat=new Cat();
+        cat.setAge("10");
+        cat.setName("cc");
+        System.out.println(cat);
+        SpringApplication.run(Springboot01QuickstartApplication.class, args);
+    }
+
+}
+```
+
+### 8、SpringBoot推荐给容器添加组件的方式:推荐使用全注解
+
+1、编写配置类
+
+@Configuration：指明当前类是一个配置类；来替代之前的Spring配置文件
+
+2、使用@Bean给容器中添加组件
+
+```java
+@Configuration
+public class Config {
+    @Bean(name="mimi")
+    public Cat Mimi(){
+        System.out.println("Hello Mimi!");
+        return new Cat();
+    }
+}
+```
+
+### 9、配置文件占位符
+
+#### 1、随机数
+
+#### 2、占位符获取之前配置的值，如果没有可以使用:指定默认值
+
+```yaml
+server:
+  port: 8090
+person:
+  name: bossking
+  age: ${random.int(20)}
+  telephone: 13078163530
+  email: 724574109@qq.com
+  cat:
+    name: ${person.name}_cc
+    age: ${random.int(10)}
+
+```
+
+### 10、Profile
+
+#### 1、多Profile文件
+
+我们在主配置文件编写的时候，文件名可以是application-{profile}.properties/yml;
+
+SpringBoot默认使用application.properties的配置；
+
+![](.//image//springProfile.png)
+
+![](.//image//springProfileActive.png)
+
+![](.//image//activeResult.png)
+
+
+
+#### 2、yml支持多文档块方式
+
+```yaml
+server:
+  port: 8090
+person:
+  name: bossking
+  age: ${random.int(20)}
+  telephone: 13078163530
+  email: 724574109@qq.com
+  cat:
+    name: ${person.name}_cc
+    age: ${random.int(10)}
+spring:
+  profiles:
+    active: dev
+---  #区分文档块
+server:
+  port: 8091
+spring:
+  profiles: prod #指定环境名
+---
+server:
+  port: 8092
+spring:
+  profiles: dev #指定环境名
+```
+
+激活dev的开发环境
+
+#### 3、激活配置profile
+
+1、在配置文件中指定激活的环境
+
+```properties
+spring.profiles.active=dev
+```
+
+```yaml
+spring:
+  profiles:
+    active: dev
+```
+
+2、命令行
+
+```program aruguments
+--spring.profiles.active=prod
+```
+
+![](.//image//programArguments.png)
+
+3、虚拟机参数
+
+VM options：
+
+```VM options
+-Dspring.profiles.active=dev
+```
+
