@@ -422,3 +422,251 @@ VM options：
 -Dspring.profiles.active=dev
 ```
 
+### 11、配置文件的加载位置
+
+SpringBoot启动会扫描以下位置的application.properties或者application.yml文件作为Spring Boot的默认配置文件
+
+- file: /config/
+- file:/
+- classpath: /config/
+- classpath:/
+
+以上是按照优先级由高到低的顺序，所有位置的文件都会被加载，高优先的配置内容会覆盖低优先级的配置内容i
+
+SpringBoot会从这四个位置全部加载主配置文件
+
+我们也可以通过配置spring.config.location来改变默认配置
+
+```shell
+java -jar **.jar --spring.config.location=加载文件路径
+```
+
+### 12、外部配置加载顺序
+
+**SpringBoot也可以从以下位置加载配置； 优先级从高到低；高优先级的配置覆盖低优先级的配置，所有的配置会形成互补配置**
+
+**1.命令行参数**
+
+所有的配置都可以在命令行上进行指定
+
+java -jar spring-boot-02-config-02-0.0.1-SNAPSHOT.jar --server.port=8087  --server.context-path=/abc
+
+多个配置用空格分开； --配置项=值
+
+
+
+2.来自java:comp/env的JNDI属性
+
+3.Java系统属性（System.getProperties()）
+
+4.操作系统环境变量
+
+5.RandomValuePropertySource配置的random.*属性值
+
+
+
+==**由jar包外向jar包内进行寻找；**==
+
+==**优先加载带profile**==
+
+**6.jar包外部的application-{profile}.properties或application.yml(带spring.profile)配置文件**
+
+![](.//image//outside.png)
+
+![](.//image//outside_properties.png)
+
+**7.jar包内部的application-{profile}.properties或application.yml(带spring.profile)配置文件**
+
+
+
+==**再来加载不带profile**==
+
+**8.jar包外部的application.properties或application.yml(不带spring.profile)配置文件**
+
+**9.jar包内部的application.properties或application.yml(不带spring.profile)配置文件**
+
+
+
+10.@Configuration注解类上的@PropertySource
+
+11.通过SpringApplication.setDefaultProperties指定的默认属性
+
+所有支持的配置加载来源；
+
+### 13、自动配置原理
+
+1）@EnableAutoConfiguration
+
+![](.//image//enableconfiguration.png)
+
+2) @Import({AutoConfigurationImportSelector.class})
+
+![](.//image//autoImportSelector.png)
+
+```java
+protected AutoConfigurationImportSelector.AutoConfigurationEntry getAutoConfigurationEntry(AutoConfigurationMetadata autoConfigurationMetadata, AnnotationMetadata annotationMetadata) {
+        if (!this.isEnabled(annotationMetadata)) {
+            return EMPTY_ENTRY;
+        } else {
+            AnnotationAttributes attributes = this.getAttributes(annotationMetadata);
+            List<String> configurations = this.getCandidateConfigurations(annotationMetadata, attributes);
+            configurations = this.removeDuplicates(configurations);
+            Set<String> exclusions = this.getExclusions(annotationMetadata, attributes);
+            this.checkExcludedClasses(configurations, exclusions);
+            configurations.removeAll(exclusions);
+            configurations = this.filter(configurations, autoConfigurationMetadata);
+            this.fireAutoConfigurationImportEvents(configurations, exclusions);
+            return new AutoConfigurationImportSelector.AutoConfigurationEntry(configurations, exclusions);
+        }
+    }
+```
+
+![](.//image//getConfigurations.png)
+
+```java
+protected List<String> getCandidateConfigurations(AnnotationMetadata metadata, AnnotationAttributes attributes) {
+        List<String> configurations = SpringFactoriesLoader.loadFactoryNames(this.getSpringFactoriesLoaderFactoryClass(), this.getBeanClassLoader());
+        Assert.notEmpty(configurations, "No auto configuration classes found in META-INF/spring.factories. If you are using a custom packaging, make sure that file is correct.");
+        return configurations;
+    }
+```
+
+![](.//image//loadFactoryName.png)
+
+- SpringFactoriesLoader.loadFactoryNames( )
+- 扫描所有jar包类路径下META-INF/spring.factories
+- 把扫描到的这些文件的内容包装成properties对象
+- 从properties中获取到EnableAutoConfiguration.class对应的值，然后把他们添加在容器中
+- 将类数据下META-INF/spring.factories里面配置的所有EnableAutoConfiguration.class
+
+![](.//image//spring_factories.png)
+
+- 以**HttpEncodingAutoConfiguration(Http编码自动配置)**为例解释自动配置原理：
+
+```java
+@Configuration   //表示这是一个配置类，以前编写的配置文件一样，也可以给容器中添加组件
+@EnableConfigurationProperties(HttpEncodingProperties.class)  //启动指定类的ConfigurationProperties功能；将配置文件中对应的值和HttpEncodingProperties绑定起来；并把HttpEncodingProperties加入到ioc容器中
+
+@ConditionalOnWebApplication //Spring底层@Conditional注解（Spring注解版），根据不同的条件，如果满足指定的条件，整个配置类里面的配置就会生效；    判断当前应用是否是web应用，如果是，当前配置类生效
+
+@ConditionalOnClass(CharacterEncodingFilter.class)  //判断当前项目有没有这个类CharacterEncodingFilter；SpringMVC中进行乱码解决的过滤器；
+
+@ConditionalOnProperty(prefix = "spring.http.encoding", value = "enabled", matchIfMissing = true)  //判断配置文件中是否存在某个配置  spring.http.encoding.enabled；如果不存在，判断也是成立的
+//即使我们配置文件中不配置spring.http.encoding.enabled=true，也是默认生效的；
+public class HttpEncodingAutoConfiguration {
+  
+  	//他已经和SpringBoot的配置文件映射了
+  	private final HttpEncodingProperties properties;
+  
+   //只有一个有参构造器的情况下，参数的值就会从容器中拿
+  	public HttpEncodingAutoConfiguration(HttpEncodingProperties properties) {
+		this.properties = properties;
+	}
+  
+    @Bean   //给容器中添加一个组件，这个组件的某些值需要从properties中获取
+	@ConditionalOnMissingBean(CharacterEncodingFilter.class) //判断容器没有这个组件？
+	public CharacterEncodingFilter characterEncodingFilter() {
+		CharacterEncodingFilter filter = new OrderedCharacterEncodingFilter();
+		filter.setEncoding(this.properties.getCharset().name());
+		filter.setForceRequestEncoding(this.properties.shouldForce(Type.REQUEST));
+		filter.setForceResponseEncoding(this.properties.shouldForce(Type.RESPONSE));
+		return filter;
+	}
+```
+
+根据当前不同条件判断，决定这个配置类是否生效？
+
+一旦这个配置类生效；这个配置类就会给容器中添加各种组件；这些组件的属性是从对应的properties中获取的，这些列里面的每一个属性又是和配置文件绑定的。
+
+精髓：
+
+- springboot启动会加载大量的自动配置类
+- 我们看我们需要的功能有没有springboot默认写好的自动配置类
+- 只要我们要用的组件由，我们就不需要再来配置
+- 给容器中自动配置类添加组件的时候，会从properties类中获取某些属性，我们就可以在配置文件中指定这些属性的值。
+
+# 二、日志
+
+## 1、日志框架
+
+**市面上的日志框架；**
+
+JUL、JCL、Jboss-logging、logback、log4j、log4j2、slf4j....
+
+| 日志门面  （日志的抽象层）                                   | 日志实现                                             |
+| ------------------------------------------------------------ | ---------------------------------------------------- |
+| ~~JCL（Jakarta  Commons Logging）~~    SLF4j（Simple  Logging Facade for Java）    **~~jboss-logging~~** | Log4j  JUL（java.util.logging）  Log4j2  **Logback** |
+
+左边选一个门面（抽象层）、右边来选一个实现；
+
+日志门面：  SLF4J；
+
+日志实现：Logback；
+
+## 2、如何在系统中使用SLF4j
+
+以后开发的时候，日志记录方法的调用，不应该来直接调用日志的实现类，而是调用日志抽象层的方法；
+
+给系统导入slf4的jar和logback的实现jar
+
+```java
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+public class HelloWorld {
+  public static void main(String[] args) {
+    Logger logger = LoggerFactory.getLogger(HelloWorld.class);
+    logger.info("Hello World");
+  }
+}
+```
+
+![](http://www.slf4j.org/images/concrete-bindings.png)
+
+蓝色代表匹配的日志框架，深青色代表适配层，适配其他日志框架。
+
+## 3、SpringBoot日志关系
+
+总结：
+
+1. SpringBoot底层也是使用slf4j+logback的方式进行日志记录
+2. SpringBoot也把其他的日志都替换成了slf4j。
+
+## 4、SpringBoot日志的默认配置
+
+```java
+@SpringBootTest
+class SpringbootLoggingApplicationTests {
+
+//  记录器
+    Logger logger=LoggerFactory.getLogger(getClass());
+    @Test
+    void contextLoads() {
+        /*日志级别由低到高
+        * trace<debug<info<warn<error
+        * 可以调整日志级别，日志就会在这个级别以后的高级别生效*/
+        logger.trace("这是trace日志。。。。。");
+        logger.debug("这是debug日志........");
+        /*SpringBoot默认给我们使用的是info级别，没有指定级别的就用SpringBoot默认规定的级别：root级别*/
+        logger.info("这是info日志..........");
+        logger.warn("这是warn日志..........");
+        logger.error("这是error日志.........");
+    }
+
+}
+```
+
+### 设置Log文件路径
+
+```properties
+logging.level.com=trace
+# 生成Log日志文件
+#logging.file.name=springboot.log
+# 在当前目录下生成日志文件
+logging.file.path=spring/log
+# 在控制台输出的日志的格式
+logging.pattern.console=
+# 在日志文件中输出的格式
+logging.pattern.file=
+```
+

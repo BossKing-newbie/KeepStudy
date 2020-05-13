@@ -558,6 +558,13 @@ jdbc.password=password
 	</bean>
 ```
 
+```properties
+jdbc.driver=com.mysql.cj.jdbc.Driver
+jdbc.url=jdbc:mysql:///eesy?useUnicode=true&characterEncoding=utf8&serverTimezone=UTC
+jdbc.username=root
+jdbc.password=password
+```
+
 ## 5.2 将Mapper接口交给spring容器
 
 ```java
