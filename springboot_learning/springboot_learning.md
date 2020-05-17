@@ -656,7 +656,7 @@ class SpringbootLoggingApplicationTests {
 }
 ```
 
-### 设置Log文件路径
+### 1、设置Log文件路径
 
 ```properties
 logging.level.com=trace
@@ -670,3 +670,132 @@ logging.pattern.console=
 logging.pattern.file=
 ```
 
+### 2、指定配置
+
+给类路径下放上每个日志框架自己的配置文件即可；SpringBoot不使用默认配置的；
+
+| Logging System          | Customization                                                |
+| ----------------------- | ------------------------------------------------------------ |
+| Logback                 | `logback-spring.xml`, `logback-spring.groovy`, `logback.xml`, or `logback.groovy` |
+| Log4j2                  | `log4j2-spring.xml` or `log4j2.xml`                          |
+| JDK (Java Util Logging) | `logging.properties`                                         |
+
+logback.xml：直接被日志框架识别了；
+
+logback-spring.xml：日志框架就不直接加载日志的配置项，由SpringBoot
+
+```xml
+<springProfile name="staging">
+	<!-- configuration to be enabled when the "staging" profile is active -->
+</springProfile>
+
+<springProfile name="dev | staging">
+	<!-- configuration to be enabled when the "dev" or "staging" profiles are active -->
+</springProfile>
+
+<springProfile name="!production">
+	<!-- configuration to be enabled when the "production" profile is not active -->
+</springProfile>
+```
+
+## 5、切换日志框架
+
+可以按照slf4j的日志适配图，进行相关的替换
+
+# 三、WEB开发
+
+## 1、简介
+
+使用SpringBoot：
+
+1. **创建SpringBoot应用，选中我们需要的模块；**
+2. **SpringBoot已经默认将这些场景配置好了，只需要在配置文件中指定少量配置就可以运行起来**
+3. **自己编写业务代码**
+
+## 2、SpringBoot对静态资源的映射规则
+
+```java
+@ConfigurationProperties(
+    prefix = "spring.resources",
+    ignoreUnknownFields = false
+)
+```
+
+可以设置和资源有关的参数
+
+```java
+ public void addResourceHandlers(ResourceHandlerRegistry registry) {
+            if (!this.resourceProperties.isAddMappings()) {
+                logger.debug("Default resource handling disabled");
+            } else {
+                Duration cachePeriod = this.resourceProperties.getCache().getPeriod();
+                CacheControl cacheControl = this.resourceProperties.getCache().getCachecontrol().toHttpCacheControl();
+                if (!registry.hasMappingForPattern("/webjars/**")) {
+                    this.customizeResourceHandlerRegistration(registry.addResourceHandler(new String[]{"/webjars/**"}).addResourceLocations(new String[]{"classpath:/META-INF/resources/webjars/"}).setCachePeriod(this.getSeconds(cachePeriod)).setCacheControl(cacheControl));
+                }
+
+                String staticPathPattern = this.mvcProperties.getStaticPathPattern();
+                if (!registry.hasMappingForPattern(staticPathPattern)) {
+                    this.customizeResourceHandlerRegistration(registry.addResourceHandler(new String[]{staticPathPattern}).addResourceLocations(WebMvcAutoConfiguration.getResourceLocations(this.resourceProperties.getStaticLocations())).setCachePeriod(this.getSeconds(cachePeriod)).setCacheControl(cacheControl));
+                }
+
+            }
+        }
+@Bean
+        public WelcomePageHandlerMapping welcomePageHandlerMapping(ApplicationContext applicationContext, FormattingConversionService mvcConversionService, ResourceUrlProvider mvcResourceUrlProvider) {
+            WelcomePageHandlerMapping welcomePageHandlerMapping = new WelcomePageHandlerMapping(new TemplateAvailabilityProviders(applicationContext), applicationContext, this.getWelcomePage(), this.mvcProperties.getStaticPathPattern());
+            welcomePageHandlerMapping.setInterceptors(this.getInterceptors(mvcConversionService, mvcResourceUrlProvider));
+            welcomePageHandlerMapping.setCorsConfigurations(this.getCorsConfigurations());
+            return welcomePageHandlerMapping;
+        }
+// 配置欢迎页设置
+private Resource getIndexHtml(String location) {
+            return this.resourceLoader.getResource(location + "index.html");
+        }
+```
+
+1. 所有/webjars/**，默认是在classpath:/META-INF/resources/webjars/路径下找资源
+
+   webjars: 以jar包的方式引入静态资源
+
+```xml
+<!--引入jQuery-webjar-->
+		<dependency>
+			<groupId>org.webjars</groupId>
+			<artifactId>jquery</artifactId>
+			<version>3.5.1</version>
+		</dependency>
+```
+
+![](.//image//jquery-webjars.png)
+
+访问地址：
+
+```
+http://localhost:8080/webjars/jquery/3.5.1/jquery.js
+```
+
+2. “/**” 访问当前项目的任何资源, (静态资源的文件夹)
+
+```java
+"classpath:/META-INF/resources/", "classpath:/resources/", 
+"classpath:/static/", 
+"classpath:/public/"
+"/"
+```
+
+localhost:8080/abc === 去静态资源文件夹里面找abc3.
+
+3. 欢迎页：静态资源文件夹下的所有Index.html页面：被/**映射
+
+4. 所有的**/favicon.icon图标都在静态资源文件夹下找
+
+5. spring配置映射资源文件夹:
+
+   ```properties
+   spring.resources.static-locations=classpath:/hello,classpath:/resources
+   ```
+
+   SpringBoot推荐的Thymeleaf
+
+## 3、Thymeleaf 语法
